@@ -24,7 +24,7 @@ pi-supersafety/
 
 - **`approval.ts`** — `approveBashCommand()` shows Allow/Deny/Run Sandboxed dialog. `approveFileOperation()` shows Allow/Deny dialog. Both use `ctx.ui.select()` with 2-minute timeout. Non-interactive mode blocks by default.
 
-- **`sandbox.ts`** — `wrapWithSandbox()` wraps a command string via `Start.exe /box:Name /wait /silent cmd /c "..."`. `execCommand()` is a standalone executor (not currently used by the extension, available for future use). Handles process tree killing on Windows via `taskkill /T /F`.
+- **`sandbox.ts`** — `wrapWithSandbox()` wraps a command string via `Start.exe /box:Name /wait /silent cmd /c "..."`. Converts Windows paths to Git Bash native format (`/c/...`). `execCommand()` is a standalone executor (not currently used by the extension, available for future use). Handles process tree killing on Windows via `taskkill /T /F`.
 
 - **`index.ts`** — Main extension. Registers:
   - `tool_call` handler: intercepts `bash`, `write`, `edit` tools
@@ -112,3 +112,13 @@ Or install to global extensions for auto-discovery:
 - `isInsideProject()` uses directory-boundary matching to avoid false positives
 - Approval dialogs have a 2-minute timeout that auto-denies on expiry
 - Status bar shows active protections: `🛡️ Supersafety: bash, files, sandbox(DefaultBox)`
+
+### Sandboxing Implementation
+
+The bash tool uses Git Bash (`/usr/bin/bash`), which requires special handling for Sandboxie:
+
+- **Path conversion** — Windows paths (`C:\Program Files\...`) are converted to Git Bash native format (`/c/Program Files/...`) so bash can resolve them
+- **`MSYS_NO_PATHCONV=1`** — Must be set to prevent Git Bash's MSYS layer from converting Start.exe flags like `/wait` into bogus paths (e.g. `/wait` → `C:/Program Files/Git/wait`)
+- **Smart shell detection** — `needsShell()` checks for pipes, redirects, `&&`, `||`, `;`, `$`, backticks. Simple commands (e.g. `notepad.exe`) run directly through Start.exe (no cmd window flash). Shell-heavy commands get the `cmd.exe /c` wrapper
+- **`wrapBashForSandbox()`** (in `index.ts`) is the actual wrapper used by the extension. `wrapWithSandbox()` in `sandbox.ts` is an equivalent standalone version for `execCommand()`
+- **Sandboxie-Plus** — The config `startPath` must point to the correct install (`Sandboxie-Plus\Start.exe`, not just `Sandboxie\Start.exe`)
