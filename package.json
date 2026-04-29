@@ -1,0 +1,30 @@
+{
+  "name": "pi-supersafety",
+  "version": "1.0.0",
+  "description": "When the example safety extensions don't cover what you need, this should! Simple with approval flow and windows sandbox capability (with Sandboxie)",
+  "keywords": [
+    "pi-package"
+  ],
+  "homepage": "https://github.com/zenforic/pi-supersafety#readme",
+  "bugs": {
+    "url": "https://github.com/zenforic/pi-supersafety/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zenforic/pi-supersafety.git"
+  },
+  "license": "MIT",
+  "author": "zenforic",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}
