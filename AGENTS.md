@@ -81,15 +81,36 @@ These patterns always trigger approval regardless of `checkProjectFolder`:
 ### Git
 
 - Git is already configured globally (commit signing, user settings, etc.)
-- There is **no remote** configured yet
-- **`main`** — Stable releases
+- Remote: `origin` → `git@github.com:zenforic/pi-supersafety.git`
+- **`main`** — Stable releases, mirrored to `origin/main`
 - **`dev`** — Feature work and experimentation
 
 ### Branching Strategy
 
 1. Start feature work on `dev`
 2. When a feature is complete and tested, merge `dev` → `main`
-3. Keep `dev` and `main` in sync after merges
+3. Push both branches to keep the remote in sync:
+
+```bash
+git checkout dev
+# ... make changes, commit ...
+git checkout main
+git merge dev
+git push origin main
+git checkout dev
+git push origin dev
+```
+
+### Publishing to npm
+
+```bash
+npm publish --access public
+```
+
+Installable after publishing via:
+```bash
+pi install npm:pi-supersafety
+```
 
 ### Testing
 
