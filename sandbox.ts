@@ -34,7 +34,9 @@ export function wrapWithSandbox(
 
   // Wrap: Start.exe /box:Name /wait /silent cmd /c "original command"
   // We use cmd /c to ensure the full shell command (pipes, &&, etc.) works.
-  return `cmd /c "${config.startPath}" ${startArgs} cmd /c "${escapeForCmdArg(command)}"`;
+  // Convert to forward slashes so Git Bash resolves the Windows path.
+  const startPath = config.startPath.replace(/\\/g, "/");
+  return `"${startPath}" ${startArgs} cmd /c "${escapeForCmdArg(command)}"`;
 }
 
 /**

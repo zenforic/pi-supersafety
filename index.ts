@@ -382,6 +382,15 @@ export default function (pi: ExtensionAPI) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Check if a command uses shell features that require cmd.exe /c to interpret.
+ * Simple commands (e.g. "notepad.exe", "ping localhost") can run directly.
+ */
+function needsShell(command: string): boolean {
+  // Matches pipes, redirects, &&/||/;, variable expansion, subshells, backticks
+  return /[|&<>];`\$/.test(command);
+}
+
+/**
  * Wrap a bash command for sandboxed execution.
  */
 function wrapBashForSandbox(command: string, sandboxConfig: SandboxieConfig): string | undefined {
@@ -390,6 +399,19 @@ function wrapBashForSandbox(command: string, sandboxConfig: SandboxieConfig): st
   }
 
   const boxFlag = `/box:${sandboxConfig.boxName}`;
-  const escaped = command.replace(/"/g, '""');
-  return `cmd /c "${sandboxConfig.startPath}" ${boxFlag} /wait /silent cmd /c "${escaped}"`;
+  // Convert to Git Bash native path (/c/Program Files/...) so bash resolves it.
+  const startPath = sandboxConfig.startPath
+    .replace(/^([A-Za-z])\\/, (_, drive) => `/${drive.toLowerCase()}/`)
+    .replace(/\\/g, "/");
+  // MSYS_NO_PATHCONV=1 prevents Git Bash from converting flags like /wait into
+  // paths (e.g. /wait → C:/Program Files/Git/wait) which Start.exe can't resolve.
+  const prefix = `MSYS_NO_PATHCONV=1 "${startPath}" ${boxFlag} /wait /silent`;
+
+  if (needsShell(command)) {
+    // Shell features need cmd.exe /c to interpret pipes, redirects, etc.
+    const escaped = command.replace(/"/g, '""');
+    return `${prefix} cmd.exe /c "${escaped}"`;
+  }
+  // Simple command — run directly, no cmd window flash
+  return `${prefix} ${command}`;
 }
