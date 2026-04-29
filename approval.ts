@@ -419,18 +419,25 @@ const KNOWN_CATEGORIES = new Set([
 
 /**
  * Detect the command category (e.g. "git", "npm") from a bash command.
+ * Handles chained commands (&& , ||, ;, |) by checking each segment.
  * Returns the category name (capitalized) or undefined if not recognized.
  */
 export function detectCommandCategory(command: string): string | undefined {
-  // Extract the first word/token from the command
-  const firstToken = command.trim().split(/\s+/)[0];
-  // Strip any path prefix (e.g. "/usr/bin/git" or "./node_modules/.bin/next")
-  const basename = firstToken.split(/[\\/]/).pop() ?? firstToken;
-  const lower = basename.toLowerCase();
-  if (KNOWN_CATEGORIES.has(lower)) {
-    return lower === "npm" || lower === "npx" || lower === "yarn" || lower === "pnpm" || lower === "pip" || lower === "pip3" || lower === "mvn" || lower === "go"
-      ? lower
-      : lower.charAt(0).toUpperCase() + lower.slice(1);
+  // Split by shell separators to handle chains like "cd dir && git status"
+  const segments = command.split(/&&|\|\||;|\|/);
+
+  for (const segment of segments) {
+    const trimmed = segment.trim();
+    if (!trimmed) continue;
+    const firstToken = trimmed.split(/\s+/)[0];
+    // Strip any path prefix (e.g. "/usr/bin/git" or "./node_modules/.bin/next")
+    const basename = firstToken.split(/[\\/]/).pop() ?? firstToken;
+    const lower = basename.toLowerCase();
+    if (KNOWN_CATEGORIES.has(lower)) {
+      return lower === "npm" || lower === "npx" || lower === "yarn" || lower === "pnpm" || lower === "pip" || lower === "pip3" || lower === "mvn" || lower === "go"
+        ? lower
+        : lower.charAt(0).toUpperCase() + lower.slice(1);
+    }
   }
   return undefined;
 }
