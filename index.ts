@@ -40,7 +40,7 @@ import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createLocalBashOperations } from "@mariozechner/pi-coding-agent";
 import { matchesKey, Key } from "@mariozechner/pi-tui";
-import { approveBashCommand, approveFileOperation } from "./approval";
+import { approveBashCommand, approveFileOperation, detectCommandCategory } from "./approval";
 import type { SandboxieConfig } from "./config";
 import { loadConfig } from "./config";
 
@@ -129,6 +129,8 @@ export default function (pi: ExtensionAPI) {
 
   let config = loadConfig(process.cwd());
   let sandboxAvailable = !!(config.bash.sandbox.enabled && config.bash.sandbox.startPath);
+  // Commands from these categories are auto-approved for the rest of the session
+  const autoApprovedCategories = new Set<string>();
 
   // -----------------------------------------------------------------------
   // Status line
@@ -172,6 +174,7 @@ export default function (pi: ExtensionAPI) {
 
     config = loadConfig(ctx.cwd);
     sandboxAvailable = !!(config.bash.sandbox.enabled && config.bash.sandbox.startPath);
+    autoApprovedCategories.clear();
 
     if (!config.enabled) {
       ctx.ui.notify("Supersafety disabled via config", "info");
@@ -222,7 +225,19 @@ export default function (pi: ExtensionAPI) {
         return undefined; // Non-destructive command, not checking project folder
       }
 
+      // Skip if this command's category was auto-approved
+      const category = detectCommandCategory(command);
+      if (category && autoApprovedCategories.has(category)) {
+        return undefined;
+      }
+
       const result = await approveBashCommand(ctx, command, config.bash.sandbox, ctx.cwd);
+
+      // Remember auto-approved category for the rest of the session
+      if (result.allowAllCategory) {
+        autoApprovedCategories.add(result.allowAllCategory);
+        ctx.ui.notify(`All ${result.allowAllCategory} commands auto-approved for this session`, "info");
+      }
 
       if (!result.approved) {
         ctx.ui.notify("Bash command denied by user", "warning");
@@ -293,7 +308,19 @@ export default function (pi: ExtensionAPI) {
       return undefined; // Non-destructive user command, pass through
     }
 
+    // Skip if this command's category was auto-approved
+    const category = detectCommandCategory(command);
+    if (category && autoApprovedCategories.has(category)) {
+      return undefined;
+    }
+
     const result = await approveBashCommand(ctx, command, config.bash.sandbox, ctx.cwd);
+
+    // Remember auto-approved category for the rest of the session
+    if (result.allowAllCategory) {
+      autoApprovedCategories.add(result.allowAllCategory);
+      ctx.ui.notify(`All ${result.allowAllCategory} commands auto-approved for this session`, "info");
+    }
 
     if (!result.approved) {
       ctx.ui.notify("User bash command denied", "warning");
