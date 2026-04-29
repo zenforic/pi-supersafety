@@ -240,6 +240,10 @@ export default function (pi: ExtensionAPI) {
       }
 
       if (!result.approved) {
+        // Send denial reason to agent (steer interrupts current turn so agent sees reason immediately)
+        if (result.message) {
+          pi.sendUserMessage(result.message, { deliverAs: "steer" });
+        }
         ctx.ui.notify("Bash command denied by user", "warning");
         return { block: true, reason: "Command denied by user" };
       }
@@ -281,6 +285,10 @@ export default function (pi: ExtensionAPI) {
 
       const result = await approveFileOperation(ctx, toolName, absolutePath, ctx.cwd);
       if (!result.approved) {
+        // Send denial reason to agent (steer interrupts current turn so agent sees reason immediately)
+        if (result.message) {
+          pi.sendUserMessage(result.message, { deliverAs: "steer" });
+        }
         ctx.ui.notify(`File operation denied: ${absolutePath}`, "warning");
         return { block: true, reason: `File operation denied by user` };
       }
@@ -323,6 +331,10 @@ export default function (pi: ExtensionAPI) {
     }
 
     if (!result.approved) {
+      // Send denial reason to agent (steer interrupts current turn so agent sees reason immediately)
+      if (result.message) {
+        pi.sendUserMessage(result.message, { deliverAs: "steer" });
+      }
       ctx.ui.notify("User bash command denied", "warning");
       // Block by returning a result directly
       return { result: { output: "Command denied by user", exitCode: 1, cancelled: false, truncated: false } };
