@@ -39,6 +39,7 @@ import { dirname, isAbsolute, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createLocalBashOperations } from "@mariozechner/pi-coding-agent";
+import { matchesKey, Key } from "@mariozechner/pi-tui";
 import { approveBashCommand, approveFileOperation } from "./approval";
 import type { SandboxieConfig } from "./config";
 import { loadConfig } from "./config";
@@ -327,29 +328,44 @@ export default function (pi: ExtensionAPI) {
       config = loadConfig(ctx.cwd);
       sandboxAvailable = !!(config.bash.sandbox.enabled && config.bash.sandbox.startPath);
 
-      const lines = [
-        ctx.ui.theme.fg("accent", ctx.ui.theme.bold("🛡️ Supersafety Configuration")),
-        "",
-        `Enabled: ${config.enabled ? ctx.ui.theme.fg("success", "Yes") : ctx.ui.theme.fg("error", "No")}`,
-        "",
-        ctx.ui.theme.fg("accent", "Bash Commands:"),
-        `  Enabled: ${config.bash.enabled ? "Yes" : "No"}`,
-        `  Check project folder: ${config.bash.checkProjectFolder ? "Yes" : "No"}`,
-        "",
-        ctx.ui.theme.fg("accent", "Sandboxie:"),
-        `  Enabled: ${config.bash.sandbox.enabled ? "Yes" : "No"}`,
-        `  Box: ${config.bash.sandbox.boxName}`,
-        `  Start.exe: ${config.bash.sandbox.startPath || ctx.ui.theme.fg("warning", "Not found")}`,
-        "",
-        ctx.ui.theme.fg("accent", "File Operations:"),
-        `  Enabled: ${config.fileOperations.enabled ? "Yes" : "No"}`,
-        `  Outside project only: ${config.fileOperations.outsideProjectOnly ? "Yes" : "No"}`,
-        `  Tools: ${config.fileOperations.tools.join(", ")}`,
-        `  Allowed paths: ${config.fileOperations.allowedPaths.length > 0 ? config.fileOperations.allowedPaths.join(", ") : "(none)"}`,
-      ];
+      await ctx.ui.custom((_tui, theme, _kb, done) => {
+        const makeSep = (width: number): string =>
+          theme.fg("border", "─").repeat(Math.max(0, width - 2));
 
-      ctx.ui.setWidget("supersafety", lines);
-      ctx.ui.notify("Supersafety config displayed", "info");
+        const contentLines: string[] = [
+          theme.fg("accent", theme.bold(" 🛡️ Supersafety Configuration ")),
+          `Enabled: ${config.enabled ? theme.fg("success", "Yes") : theme.fg("error", "No")}`,
+          "",
+          theme.fg("accent", "Bash Commands:"),
+          `  Enabled: ${config.bash.enabled ? "Yes" : "No"}`,
+          `  Check project folder: ${config.bash.checkProjectFolder ? "Yes" : "No"}`,
+          "",
+          theme.fg("accent", "Sandboxie:"),
+          `  Enabled: ${config.bash.sandbox.enabled ? "Yes" : "No"}`,
+          `  Box: ${config.bash.sandbox.boxName}`,
+          `  Start.exe: ${config.bash.sandbox.startPath || theme.fg("warning", "Not found")}`,
+          "",
+          theme.fg("accent", "File Operations:"),
+          `  Enabled: ${config.fileOperations.enabled ? "Yes" : "No"}`,
+          `  Outside project only: ${config.fileOperations.outsideProjectOnly ? "Yes" : "No"}`,
+          `  Tools: ${config.fileOperations.tools.join(", ")}`,
+          `  Allowed paths: ${config.fileOperations.allowedPaths.length > 0 ? config.fileOperations.allowedPaths.join(", ") : "(none)"}`,
+          theme.fg("muted", "Press Esc or Enter to close"),
+        ];
+
+        return {
+          render: (width: number): string[] => {
+            const sep = makeSep(width);
+            return [sep, ...contentLines, sep];
+          },
+          handleInput: (data: string) => {
+            if (matchesKey(data, Key.escape) || matchesKey(data, Key.enter)) {
+              done(undefined);
+            }
+          },
+          invalidate: () => {},
+        };
+      }, { overlay: true });
     },
   });
 
