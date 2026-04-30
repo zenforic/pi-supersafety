@@ -1,9 +1,11 @@
 {
   "name": "pi-supersafety",
-  "version": "1.0.0",
+  "version": "1.0.0i",
   "description": "When the example safety extensions don't cover what you need, this should! Simple with approval flow and windows sandbox capability (with Sandboxie)",
   "keywords": [
-    "pi-package"
+    "pi-package",
+    "pi",
+    "pi-coding-agent"
   ],
   "homepage": "https://github.com/zenforic/pi-supersafety#readme",
   "bugs": {
