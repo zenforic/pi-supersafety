@@ -1,6 +1,6 @@
 {
   "name": "pi-supersafety",
-  "version": "1.0.0i",
+  "version": "1.0.1",
   "description": "When the example safety extensions don't cover what you need, this should! Simple with approval flow and windows sandbox capability (with Sandboxie)",
   "keywords": [
     "pi-package",
